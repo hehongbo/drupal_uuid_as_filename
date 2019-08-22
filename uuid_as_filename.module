@@ -1,0 +1,11 @@
+<?php
+
+use Drupal\file\FileInterface;
+
+function uuid_as_filename_file_validate(FileInterface $file) {
+    $dirname = \Drupal::service('file_system')->dirname($file->destination);
+    $basename = \Drupal::service('file_system')->basename($file->destination);
+    $extension = end(explode(".", $basename));
+    $basename = $file->uuid() . '.' . $extension;
+    $file->destination = file_create_filename($basename, $dirname);
+}
