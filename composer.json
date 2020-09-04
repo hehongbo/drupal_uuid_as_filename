@@ -1,0 +1,13 @@
+{
+    "name": "hehongbo/uuid_as_filename",
+    "description": "Rename files with their UUID.",
+    "type": "drupal-module",
+    "homepage": "https://github.com/hehongbo/uuid_as_filename",
+    "authors": [
+        {
+            "name": "Hongbo He",
+            "homepage": "https://hongbohe.net",
+            "role": "Maintainer"
+        }
+    ]
+}
