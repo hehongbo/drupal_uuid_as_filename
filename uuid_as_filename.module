@@ -1,12 +1,50 @@
 <?php
 
+use Drupal\Core\File\Exception\FileException;
+use Drupal\Core\File\FileSystemInterface;
 use Drupal\file\FileInterface;
 
-function uuid_as_filename_file_validate(FileInterface $file) {
-    $dirname = \Drupal::service('file_system')->dirname($file->destination);
-    $basename = \Drupal::service('file_system')->basename($file->destination);
-    $explodedBasename = explode(".", $basename);
-    $extension = end($explodedBasename);
-    $basename = $file->uuid() . '.' . $extension;
-    $file->destination = \Drupal::service('file_system')->createFilename($basename, $dirname);
+function uuid_as_filename_file_presave(FileInterface $file): void {
+  if (!$file->isNew()) {
+    return;
+  }
+
+  $file_system = \Drupal::service('file_system');
+  $current_uri = $file->getFileUri();
+
+  if (empty($current_uri)) {
+    return;
+  }
+
+  $directory = $file_system->dirname($current_uri);
+  $extension = pathinfo($file_system->basename($current_uri), PATHINFO_EXTENSION);
+  $destination_basename = $file->uuid();
+
+  if ($extension !== '') {
+    $destination_basename .= '.' . $extension;
+  }
+
+  $destination_uri = $directory;
+  if (substr($destination_uri, -1) !== '/') {
+    $destination_uri .= '/';
+  }
+  $destination_uri .= $destination_basename;
+
+  if ($current_uri === $destination_uri) {
+    $file->setFilename($destination_basename);
+    return;
+  }
+
+  try {
+    $moved_uri = $file_system->move($current_uri, $destination_uri, FileSystemInterface::EXISTS_RENAME);
+    $file->setFileUri($moved_uri);
+    $file->setFilename($file_system->basename($moved_uri));
+  }
+  catch (FileException $exception) {
+    \Drupal::logger('uuid_as_filename')->warning('Could not rename uploaded file %source to %destination: @message', [
+      '%source' => $current_uri,
+      '%destination' => $destination_uri,
+      '@message' => $exception->getMessage(),
+    ]);
+  }
 }
